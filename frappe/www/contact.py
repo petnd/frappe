@@ -13,6 +13,9 @@ sitemap = 1
 
 def get_context(context):
 	doc = frappe.get_doc("Contact Us Settings", "Contact Us Settings")
+	if doc.is_disabled:
+		frappe.local.flags.redirect_location = "/"
+		raise frappe.Redirect
 
 	if doc.query_options:
 		query_options = [opt.strip() for opt in doc.query_options.replace(",", "\n").split("\n") if opt]
@@ -25,9 +28,14 @@ def get_context(context):
 	return out
 
 
+
 @frappe.whitelist(allow_guest=True)
 @rate_limit(limit=1000, seconds=60 * 60)
 def send_message(sender, message, subject="Website Query"):
+	doc = frappe.get_doc("Contact Us Settings", "Contact Us Settings")
+	if doc.is_disabled:
+		return
+
 	sender = validate_email_address(sender, throw=True)
 
 	message = escape_html(message)
